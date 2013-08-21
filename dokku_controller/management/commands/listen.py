@@ -68,7 +68,7 @@ def update_load_balancer():
                 else:
                     # Everything is up to date
                     pass
-        gevent.sleep(5)
+        gevent.sleep(25)
 
 
 class Command(BaseCommand):
