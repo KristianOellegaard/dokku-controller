@@ -14,14 +14,4 @@ Roadmap
 Publish information from dokku
 ------------------------------
 
-Upload this file:
-
-publish.sh
-```bash
- docker ps | sed 1d | awk '{ print $2 }' | python -c 'import sys; print sys.stdin.read().replace("app/", "").replace(":latest",""),' | python -c 'import json; import sys; import socket; print json.dumps({ socket.gethostname(): [app for app in sys.stdin.read().split("\n") if app]})'
-```
-
-Run this cronjob every few minutes:
-```bash
-sudo /home/ubuntu/publish.sh | redis-cli -h <host> -p 6379 -p <password>  -x PUBLISH app_announce
-```
+[Use the agent](https://github.com/KristianOellegaard/dokku-controller-agent)
