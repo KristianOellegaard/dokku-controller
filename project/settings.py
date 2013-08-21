@@ -83,7 +83,8 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'h3tsqy&=abb2p91pb2qq1&rji&a$=wvwilb1@f68sh$l=sv3-3'
+SECRET_KEY = ''
+assert SECRET_KEY, "Please add a SECRET_KEY to your settings file"
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -174,3 +175,8 @@ import os
 import urlparse
 
 REDIS_URL = urlparse.urlparse(os.environ.get('REDIS_URL', 'redis://localhost:6379/'))
+
+try:
+    from local_settings import *
+except ImportError:
+    pass
