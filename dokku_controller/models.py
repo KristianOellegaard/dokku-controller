@@ -28,7 +28,16 @@ class App(models.Model):
 class Deployment(models.Model):
     host = models.ForeignKey(Host)
     app = models.ForeignKey(App)
+    endpoint = models.CharField(max_length=256)
     last_update = models.DateTimeField()
 
     def __unicode__(self):
-        return u"%s on %s"  % (self.app.name, self.host.hostname)
+        return u"%s on %s" % (self.app.name, self.host.hostname)
+
+
+class Domain(models.Model):
+    app = models.ForeignKey(App)
+    domain_name = models.CharField(max_length=128, unique=True, primary_key=True)
+
+    def __unicode__(self):
+        return self.domain_name

@@ -4,6 +4,7 @@ import logging
 import datetime
 from django.core.management import BaseCommand
 from dokku_controller.models import Deployment, Host, App
+from django.conf import settings
 
 logging.basicConfig(
     format='%(asctime)s,%(msecs)05.1f (%(funcName)s) %(message)s',
@@ -24,10 +25,8 @@ hostname = python_socket.gethostname()
 
 def clean_deployments():
     while True:
-        # Loop over docker instances that starts with app/ and return endpoint and optionally HTTP status
         for deployment in Deployment.objects.filter(last_update__lte=datetime.datetime.now() - datetime.timedelta(minutes=5)):
-            logging.info(deployment)
-            #redis_connection.publish("app_status", json.dumps(app))
+            logging.warn(u"%s didn't check in for at least 5 min" % deployment)
         gevent.sleep(60)
 
 
@@ -35,10 +34,11 @@ def listen_for_requests():
     pubsub_connection = redis_connection.pubsub()
     pubsub_connection.subscribe(['app_announce'])
     for itm in pubsub_connection.listen():
+        logging.info(itm)
         if itm['type'] == 'message':
             data = json.loads(itm['data'])
             host, created = Host.objects.get_or_create(hostname=data.keys()[0])
-            for app in data.values()[0]:
+            for app, port in data.values()[0]:
                 app, created = App.objects.get_or_create(name=app)
                 deployment_qs = Deployment.objects.filter(app=app, host=host)
                 if deployment_qs.exists():
@@ -46,12 +46,35 @@ def listen_for_requests():
                 else:
                     deployment = Deployment(app=app, host=host)
                 deployment.last_update = datetime.datetime.now()
+                deployment.endpoint = "http://%s:%s/" % (host.hostname, port)
                 deployment.save()
-        logging.info(itm)
+
+
+def update_load_balancer():
+    while True:
+        for app in App.objects.all():
+            lb_config = [app.name]
+            for deployment in app.deployment_set.filter(last_update__gt=datetime.datetime.now() - datetime.timedelta(minutes=5)):
+                lb_config.append(deployment.endpoint)
+            default_domain = ["%s.%s" % (app.name, settings.BASE_DOMAIN)]
+            for domain in [domain.domain_name for domain in app.domain_set.all()] + default_domain:
+                key = "frontend:%s" % domain
+                existing_config = redis_connection.lrange(key, 0, -1)
+                if len(existing_config) == 0:
+                    redis_connection.rpush(key, *lb_config)
+                elif not existing_config == lb_config:
+                    redis_connection.ltrim(key, 1, 0)
+                    redis_connection.rpush(key, *lb_config)
+                else:
+                    # Everything is up to date
+                    pass
+        gevent.sleep(5)
+
 
 class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         clean_event = gevent.spawn(clean_deployments)
-        listen_for_requests_even = gevent.spawn(listen_for_requests)
-        gevent.joinall([clean_event, listen_for_requests_even])
+        listen_for_requests_event = gevent.spawn(listen_for_requests)
+        load_balancer_event = gevent.spawn(update_load_balancer)
+        gevent.joinall([clean_event, listen_for_requests_event, load_balancer_event])

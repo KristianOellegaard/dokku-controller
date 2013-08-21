@@ -6,3 +6,4 @@ hiredis==0.1.1
 gunicorn==17.5
 gevent==0.13.8
 djangorestframework==2.3.7
+South==0.8.2

@@ -84,7 +84,6 @@ STATICFILES_FINDERS = (
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = ''
-assert SECRET_KEY, "Please add a SECRET_KEY to your settings file"
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -124,7 +123,8 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'dokku_controller',
     'rest_framework',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'south'
 )
 
 # A sample logging configuration. The only tangible logging
@@ -173,10 +173,15 @@ REST_FRAMEWORK = {
 
 import os
 import urlparse
+import socket
 
 REDIS_URL = urlparse.urlparse(os.environ.get('REDIS_URL', 'redis://localhost:6379/'))
+
+BASE_DOMAIN = os.environ.get("BASE_DOMAIN", socket.gethostname())
 
 try:
     from local_settings import *
 except ImportError:
     pass
+
+assert SECRET_KEY, "Please add a SECRET_KEY to your settings file"
