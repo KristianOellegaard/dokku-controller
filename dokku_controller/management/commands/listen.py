@@ -5,19 +5,20 @@ import datetime
 from django.core.management import BaseCommand
 from dokku_controller.models import Deployment, Host, App
 from django.conf import settings
+import gevent
+import socket as python_socket
+from gevent import socket
+from django.utils.timezone import now
+from project.redis_connection import connection as redis_connection
+import redis
+import redis.connection
+redis.connection.socket = socket
 
 logging.basicConfig(
     format='%(asctime)s,%(msecs)05.1f (%(funcName)s) %(message)s',
     datefmt='%H:%M:%S')
 log = logging.getLogger()
 log.setLevel(logging.INFO)
-import gevent
-import socket as python_socket
-from gevent import socket
-from project.redis_connection import connection as redis_connection
-import redis
-import redis.connection
-redis.connection.socket = socket
 
 
 hostname = python_socket.gethostname()
@@ -25,7 +26,7 @@ hostname = python_socket.gethostname()
 
 def clean_deployments():
     while True:
-        for deployment in Deployment.objects.filter(last_update__lte=datetime.datetime.now() - datetime.timedelta(minutes=5)):
+        for deployment in Deployment.objects.filter(last_update__lte=now() - datetime.timedelta(minutes=5)):
             logging.warn(u"%s didn't check in for at least 5 min" % deployment)
         gevent.sleep(60)
 
@@ -54,7 +55,7 @@ def update_load_balancer():
     while True:
         for app in App.objects.all():
             lb_config = [app.name]
-            for deployment in app.deployment_set.filter(last_update__gt=datetime.datetime.now() - datetime.timedelta(minutes=5)):
+            for deployment in app.deployment_set.filter(last_update__gt=now() - datetime.timedelta(minutes=5)):
                 lb_config.append(deployment.endpoint)
             default_domain = ["%s.%s" % (app.name, settings.BASE_DOMAIN)]
             for domain in [domain.domain_name for domain in app.domain_set.all()] + default_domain:

@@ -1,5 +1,5 @@
 from django.db import models
-from dokku_controller.tasks import restart, delete
+from dokku_controller.tasks import restart, delete, update_environment
 
 
 class Host(models.Model):
@@ -10,11 +10,16 @@ class Host(models.Model):
 
 
 class App(models.Model):
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=128, unique=True, primary_key=True)
 
     def restart(self):
         for deployment in self.deployment_set.all():
             restart(deployment.host.hostname, deployment.app.name)
+
+    def update_environment_variables(self):
+        for deployment in self.deployment_set.all():
+            update_environment(deployment.host.hostname, deployment.app.name, [(var.key, var.value) for var in self.environmentvariable_set.all()])
+        self.restart()
 
     def delete(self, *args, **kwargs):
         for deployment in self.deployment_set.all():
@@ -41,3 +46,12 @@ class Domain(models.Model):
 
     def __unicode__(self):
         return self.domain_name
+
+
+class EnvironmentVariable(models.Model):
+    app = models.ForeignKey(App)
+    key = models.CharField(max_length=256)
+    value = models.CharField(max_length=256)
+
+    def __unicode__(self):
+        return u"%s=%s" % (self.key, self.value)

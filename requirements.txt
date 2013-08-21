@@ -7,3 +7,5 @@ gunicorn==17.5
 gevent==0.13.8
 djangorestframework==2.3.7
 South==0.8.2
+honcho==0.4.2
+Markdown==2.1.0

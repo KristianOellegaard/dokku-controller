@@ -46,7 +46,7 @@ USE_I18N = True
 USE_L10N = True
 
 # If you set this to False, Django will not use timezone-aware datetimes.
-USE_TZ = True
+USE_TZ = False
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
@@ -81,9 +81,6 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
-
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = ''
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -124,7 +121,8 @@ INSTALLED_APPS = (
     'dokku_controller',
     'rest_framework',
     'rest_framework.authtoken',
-    'south'
+    'south',
+    'gunicorn'
 )
 
 # A sample logging configuration. The only tangible logging
@@ -178,6 +176,9 @@ import socket
 REDIS_URL = urlparse.urlparse(os.environ.get('REDIS_URL', 'redis://localhost:6379/'))
 
 BASE_DOMAIN = os.environ.get("BASE_DOMAIN", socket.gethostname())
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = os.environ.get("SECRET_KEY", None)
 
 try:
     from local_settings import *
