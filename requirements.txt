@@ -10,3 +10,4 @@ South==0.8.2
 honcho==0.4.2
 Markdown==2.1.0
 dj-database-url==0.2.2
+dj-static==0.0.5
