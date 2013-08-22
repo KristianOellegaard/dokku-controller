@@ -172,8 +172,10 @@ REST_FRAMEWORK = {
 import os
 import urlparse
 import socket
+import dj_database_url
 
 REDIS_URL = urlparse.urlparse(os.environ.get('REDIS_URL', 'redis://localhost:6379/'))
+DATABASES = {'default': dj_database_url.config(default='sqlite:///db.sqlite3')}
 
 BASE_DOMAIN = os.environ.get("BASE_DOMAIN", socket.gethostname())
 
