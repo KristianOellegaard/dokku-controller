@@ -1,12 +1,24 @@
 import StringIO
+from subprocess import check_call as _check_call
 import fabric.api as fabric
 from django.conf import settings
-from fabric.operations import put
+from fabric.operations import put, os
+from rq import Queue
+import time
+from dokku_controller.utils import TemporaryDirectory
+from project.redis_connection import connection as redis_connection
+import logging
 
-try:
-    from shlex import quote  # Python 3.3+
-except ImportError:
-    from pipes import quote # Python 2.7-
+logging.basicConfig(
+    format='%(asctime)s,%(msecs)05.1f (%(funcName)s) %(message)s',
+    datefmt='%H:%M:%S')
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+
+
+def check_call(cmd, *args, **kwargs):
+    logging.debug(cmd)
+    return _check_call(cmd, *args, **kwargs)
 
 
 def restart(server_hostname, instance_name):
@@ -37,3 +49,18 @@ def update_environment(server_hostname, instance_name, env_pairs):
         })
         env_file_content = "\n".join([u"export %s='%s'" % (key, value) for key, value in env_pairs])
         put(StringIO.StringIO(env_file_content), '/home/%(GIT_USER)s/%(instance_name)s/ENV' % d, use_sudo=True)
+
+
+def deploy_revision(server_hostname, instance_name, revision_number, revision_file_path, async=True):
+    if async:
+        q = Queue('default', connection=redis_connection)
+        q.enqueue(deploy_revision, server_hostname, instance_name, revision_number, revision_file_path, False)
+    else:
+        with TemporaryDirectory() as dirname:
+            check_call(["cp", revision_file_path, os.path.join(dirname, 'app.tar.gz')])
+            check_call(["tar", "-xf", "app.tar.gz"], cwd=dirname)
+            check_call(["rm", "app.tar.gz"], cwd=dirname)
+            check_call(["git", "init"], cwd=dirname)
+            check_call(["git", "add", "."], cwd=dirname)
+            check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
+            check_call(["git", "push", "git@%s:%s" % (server_hostname, instance_name), "master", "--force"], cwd=dirname)
