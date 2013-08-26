@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from dokku_controller.models import App, Domain, EnvironmentVariable
+from dokku_controller.models import App, Domain, EnvironmentVariable, Deployment, Revision
 
 
 class AppSerializer(serializers.ModelSerializer):
@@ -71,7 +71,12 @@ class AppViewSet(viewsets.ModelViewSet):
         """
         Upload a new release of an app. Should only contain the file in as in the file key.
         """
-        print request.FILES
+        app = self.get_object()
+        deployment = Revision()
+        deployment.compressed_archive = request.FILES['file']
+        deployment.app = app
+        deployment.save()
+        app.deploy()
         response = {}
         return Response(response)
 

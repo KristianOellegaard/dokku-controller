@@ -25,4 +25,10 @@ admin.site.register(Deployment)
 admin.site.register(Host)
 admin.site.register(Domain)
 admin.site.register(EnvironmentVariable)
-admin.site.register(Revision)
+
+
+class RevisionAdmin(admin.ModelAdmin):
+    search_fields = ('app__name', )
+    list_display = ('revision_number', 'app')
+
+admin.site.register(Revision, RevisionAdmin)

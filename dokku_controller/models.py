@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 from dokku_controller.tasks import restart, delete, update_environment, deploy_revision
 
@@ -37,7 +38,7 @@ class App(models.Model):
 
 class Revision(models.Model):
     app = models.ForeignKey(App)
-    date = models.DateTimeField()
+    date = models.DateTimeField(default=datetime.datetime.now)
     revision_number = models.IntegerField(editable=False)
     compressed_archive = models.FileField(upload_to=lambda instance, filename: "%s/%s-%s" % (
         instance.app.name, instance.revision_number, filename
