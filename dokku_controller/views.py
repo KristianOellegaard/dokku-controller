@@ -1,56 +1,78 @@
 import json
 from django.http import Http404
 from rest_framework import serializers, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from dokku_controller.models import App, Domain, EnvironmentVariable
 
 
-class ApplicationView(APIView):
+class AppSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = App
+        fields = ('name',)
+
+
+class AppViewSet(viewsets.ModelViewSet):
     """
-    Applications expose the following functions:
+    Apps exposes the following urls:
 
-    GET
-    ---
+    /v1/applications/<appname\>/ **GET, POST, PUT, DELETE**
+    -----------------------------------------------
 
-    Returns the app's name
+    Get, create, update or delete an app.
 
-    PUT
-    ---
+    /v1/applications/<appname\>/restart/ **POST**
+    -------------------------------------
 
-    Restarts the app
+    Restart an app
 
-    DELETE
-    ------
+    /v1/applications/<appname\>/update_env_vars/ **POST**
+    ---------------------------------------------
 
-    Deletes the app completely, including any stored files
+    Update the environment variables and restart the app
+
+    /v1/applications/<appname\>/upload/ **POST**
+    ------------------------------------
+
+    Upload a new release of an app. Should only contain the file, such as:
+
+    curl -i -F file=@upload.tar.gz https://<server\>/v1/applications/<app\>/upload/ -H 'Authorization: Token <token\>
+
+    Must be a .tar.gz
+
     """
+    queryset = App.objects.all()
+    serializer_class = AppSerializer
 
-    def get_app(self, args, kwargs):
-        app_name = kwargs.get('app_name')
-        try:
-            app = App.objects.get(name=app_name)
-        except App.DoesNotExist:
-            raise Http404("App does not exist")
-        return app
-
-    def delete(self, request, *args, **kwargs):
-        app = self.get_app(args, kwargs)
-        app.delete()
-        response = {}
-        return Response(response)
-
-    def put(self, request, *args, **kwargs):
-        app = self.get_app(args, kwargs)
+    @action()
+    def update_env_vars(self, request, pk=None):
+        """
+        Updates the environment variables and restarts the app
+        """
+        app = self.get_object()
         app.update_environment_variables()
         response = {}
         return Response(response)
 
-    def get(self, request, *args, **kwargs):
-        app = self.get_app(args, kwargs)
-        response = {
-            'app_name': app.name,
-        }
+    @action()
+    def restart(self, request, pk=None):
+        """
+        Restarts the app
+        """
+        app = self.get_object()
+        app.restart()
+        response = {}
+        return Response(response)
+
+    @action(parser_classes=(FileUploadParser, ))
+    def upload(self, request, pk=None):
+        """
+        Upload a new release of an app. Should only contain the file in as in the file key.
+        """
+        print request.FILES
+        response = {}
         return Response(response)
 
 
@@ -68,9 +90,18 @@ class DomainViewSet(viewsets.ModelViewSet):
 class EnvironmentVariableSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnvironmentVariable
-        fields = ('app', 'key', 'value')
+        fields = ('id', 'app', 'key', 'value')
 
 
 class EnvironmentVariableViewSet(viewsets.ModelViewSet):
+    """
+    Apps exposes the following urls:
+
+    /v1/environment_variables/<id\>/ **GET, POST, PUT, DELETE**
+    -----------------------------------------------
+
+    Get, create, update or delete an environment variable.
+
+    """
     queryset = EnvironmentVariable.objects.all()
     serializer_class = EnvironmentVariableSerializer
