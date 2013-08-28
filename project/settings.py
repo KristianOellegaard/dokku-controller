@@ -121,6 +121,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'dokku_controller',
+    'service_gw',
     'rest_framework',
     'rest_framework.authtoken',
     'south',
