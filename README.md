@@ -21,3 +21,21 @@ Publish information from dokku
 ------------------------------
 
 [Use the agent](https://github.com/KristianOellegaard/dokku-controller-agent)
+
+
+Setup
+=====
+
+Controller
+----------
+pip install -r requirements.txt
+honcho start
+
+
+Dokku
+-----
+(from controller)
+```
+cat ~/.ssh/id_rsa.pub | ssh ubuntu@<server> "sudo gitreceive upload-key dokku-controller"
+```
+Make sure the agent is running
