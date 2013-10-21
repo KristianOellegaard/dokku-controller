@@ -12,13 +12,18 @@ def restart_app(modeladmin, request, queryset):
         app.restart()
 
 
+def pause_app(modeladmin, request, queryset):
+    for app in queryset:
+        app.pause()
+
+
 def deploy_app(modeladmin, request, queryset):
     for app in queryset:
         app.deploy()
 
 
 class AppAdmin(admin.ModelAdmin):
-    actions = [delete_app, restart_app, deploy_app]
+    actions = [delete_app, restart_app, deploy_app, pause_app]
 
 admin.site.register(App, AppAdmin)
 admin.site.register(Deployment)
