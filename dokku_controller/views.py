@@ -23,6 +23,16 @@ class AppViewSet(viewsets.ModelViewSet):
 
     Get, create, update or delete an app.
 
+    /v1/applications/<appname\>/start/ **POST**
+    -------------------------------------
+
+    Start an app
+
+    /v1/applications/<appname\>/stop/ **POST**
+    -------------------------------------
+
+    Stop an app
+
     /v1/applications/<appname\>/restart/ **POST**
     -------------------------------------
 
