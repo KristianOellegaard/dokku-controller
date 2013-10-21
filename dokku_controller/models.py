@@ -1,7 +1,8 @@
 import datetime
 from django.db import models
-from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server
-
+from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server, start, stop
+from project.redis_connection import connection as redis_connection
+from django.conf import settings
 
 class Host(models.Model):
     hostname = models.CharField(max_length=128)
@@ -13,9 +14,33 @@ class Host(models.Model):
 class App(models.Model):
     name = models.CharField(max_length=128, unique=True, primary_key=True)
 
+    def start(self):
+        for deployment in self.deployment_set.all():
+            start(deployment.host.hostname, deployment.app.name)
+
+    def stop(self):
+        for deployment in self.deployment_set.all():
+            stop(deployment.host.hostname, deployment.app.name)
+
     def restart(self):
         for deployment in self.deployment_set.all():
             restart(deployment.host.hostname, deployment.app.name)
+
+    def pause(self):
+        self.stop()
+        lb_config = [self.name, 'paused']
+        default_domain = ["%s.%s" % (self.name, settings.BASE_DOMAIN)]
+        for domain in [domain.domain_name for domain in self.domain_set.all()] + default_domain:
+            key = "frontend:%s" % domain
+            existing_config = redis_connection.lrange(key, 0, -1)
+            if len(existing_config) == 0:
+                redis_connection.rpush(key, *lb_config)
+            elif not existing_config == lb_config:
+                redis_connection.ltrim(key, 1, 0)
+                redis_connection.rpush(key, *lb_config)
+            else:
+                # Everything is up to date
+                pass
 
     def update_environment_variables(self):
         for deployment in self.deployment_set.all():
