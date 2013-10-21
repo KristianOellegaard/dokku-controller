@@ -38,4 +38,10 @@ Dokku
 ```
 cat ~/.ssh/id_rsa.pub | ssh ubuntu@<server> "sudo gitreceive upload-key dokku-controller"
 ```
+Furthermore, add the ssh public key, of the user that is running the controller to the user ```ubuntu``` on every dokku instance.
+
+Add the following to sudoers file:
+```
+ubuntu  ALL=(root) NOPASSWD: /usr/bin/docker
+```
 Make sure the agent is running
