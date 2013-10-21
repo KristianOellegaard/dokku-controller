@@ -66,6 +66,26 @@ class AppViewSet(viewsets.ModelViewSet):
         response = {}
         return Response(response)
 
+    @action()
+    def start(self, request, pk=None):
+        """
+        Starts the app
+        """
+        app = self.get_object()
+        app.restart()
+        response = {}
+        return Response(response)
+
+    @action()
+    def stop(self, request, pk=None):
+        """
+        Stops the app
+        """
+        app = self.get_object()
+        app.restart()
+        response = {}
+        return Response(response)
+
     @action(parser_classes=(FileUploadParser, ))
     def upload(self, request, pk=None):
         """
