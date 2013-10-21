@@ -18,6 +18,8 @@ class App(models.Model):
     def start(self):
         for deployment in self.deployment_set.all():
             start(deployment.host.hostname, deployment.app.name)
+        self.paused = False
+        self.save()
 
     def stop(self):
         for deployment in self.deployment_set.all():
@@ -26,6 +28,8 @@ class App(models.Model):
     def restart(self):
         for deployment in self.deployment_set.all():
             restart(deployment.host.hostname, deployment.app.name)
+        self.paused = False
+        self.save()
 
     def pause(self):
         self.stop()
