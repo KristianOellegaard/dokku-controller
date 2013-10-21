@@ -29,7 +29,7 @@ def docker_instance_command(cmd, server_hostname, instance_name):
             'instance_name': instance_name,
             'cmd': cmd
         })
-        fabric.run('sudo docker ps | grep app/%(instance_name)s:latest | awk \'{ print $1 } \' | xargs sudo docker %(cmd)s' % d)
+        fabric.run('sudo docker ps -a | grep app/%(instance_name)s:latest | awk \'{ print $1 } \' | xargs sudo docker %(cmd)s' % d)
 
 start = lambda server_hostname, instance_name: docker_instance_command('start', server_hostname, instance_name)
 stop = lambda server_hostname, instance_name: docker_instance_command('stop', server_hostname, instance_name)
