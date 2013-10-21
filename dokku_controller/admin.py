@@ -12,6 +12,16 @@ def restart_app(modeladmin, request, queryset):
         app.restart()
 
 
+def start_app(modeladmin, request, queryset):
+    for app in queryset:
+        app.start()
+
+
+def stop_app(modeladmin, request, queryset):
+    for app in queryset:
+        app.stop()
+
+
 def pause_app(modeladmin, request, queryset):
     for app in queryset:
         app.pause()
@@ -23,7 +33,7 @@ def deploy_app(modeladmin, request, queryset):
 
 
 class AppAdmin(admin.ModelAdmin):
-    actions = [delete_app, restart_app, deploy_app, pause_app]
+    actions = [delete_app, restart_app, deploy_app, pause_app, start_app, stop_app]
 
 admin.site.register(App, AppAdmin)
 admin.site.register(Deployment)
