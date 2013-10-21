@@ -1,5 +1,6 @@
 import StringIO
 from subprocess import check_call as _check_call
+from django.db.models import Count
 import fabric.api as fabric
 from django.conf import settings
 from fabric.operations import put, os
@@ -21,14 +22,18 @@ def check_call(cmd, *args, **kwargs):
     return _check_call(cmd, *args, **kwargs)
 
 
-def restart(server_hostname, instance_name):
+def docker_instance_command(cmd, server_hostname, instance_name):
     with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
         d = settings.DOKKU
         d.update({
-            'instance_name': instance_name
+            'instance_name': instance_name,
+            'cmd': cmd
         })
-        fabric.run('sudo docker ps | grep app/%(instance_name)s:latest | awk \'{ print $1 } \' | xargs sudo docker restart' % d)
+        fabric.run('sudo docker ps | grep app/%(instance_name)s:latest | awk \'{ print $1 } \' | xargs sudo docker %(cmd)s' % d)
 
+start = lambda server_hostname, instance_name: docker_instance_command('start', server_hostname, instance_name)
+stop = lambda server_hostname, instance_name: docker_instance_command('stop', server_hostname, instance_name)
+restart = lambda server_hostname, instance_name: docker_instance_command('restart', server_hostname, instance_name)
 
 def delete(server_hostname, instance_name):
     with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
@@ -64,3 +69,9 @@ def deploy_revision(server_hostname, instance_name, revision_number, revision_fi
             check_call(["git", "add", "."], cwd=dirname)
             check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
             check_call(["git", "push", "git@%s:%s" % (server_hostname, instance_name), "master", "--force"], cwd=dirname)
+
+
+def get_new_deployment_server(app):
+    from dokku_controller.models import Host
+    hosts = Host.objects.all().annotate(num_deployments=Count('deployment'))
+    return min(hosts, key=lambda itm: itm.num_deployments)

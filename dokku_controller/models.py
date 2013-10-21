@@ -1,6 +1,6 @@
 import datetime
 from django.db import models
-from dokku_controller.tasks import restart, delete, update_environment, deploy_revision
+from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server
 
 
 class Host(models.Model):
@@ -29,7 +29,15 @@ class App(models.Model):
 
     def deploy(self):
         revision = self.revision_set.all().latest('revision_number')
-        for deployment in self.deployment_set.all():
+        if self.deployment_set.all():
+            for deployment in self.deployment_set.all():
+                deploy_revision(deployment.host.hostname, deployment.app.name, revision.revision_number, revision.compressed_archive.path)
+        else:  # This wasn't deployed to a server before!
+            deployment = Deployment.objects.create(
+                host=get_new_deployment_server(self),
+                app=self,
+                last_update=datetime.datetime.now() - datetime.timedelta(days=30)  # make it inactive
+            )
             deploy_revision(deployment.host.hostname, deployment.app.name, revision.revision_number, revision.compressed_archive.path)
 
     def __unicode__(self):
