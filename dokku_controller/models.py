@@ -13,6 +13,7 @@ class Host(models.Model):
 
 class App(models.Model):
     name = models.CharField(max_length=128, unique=True, primary_key=True)
+    paused = models.BooleanField()
 
     def start(self):
         for deployment in self.deployment_set.all():
@@ -28,19 +29,8 @@ class App(models.Model):
 
     def pause(self):
         self.stop()
-        lb_config = [self.name, 'paused']
-        default_domain = ["%s.%s" % (self.name, settings.BASE_DOMAIN)]
-        for domain in [domain.domain_name for domain in self.domain_set.all()] + default_domain:
-            key = "frontend:%s" % domain
-            existing_config = redis_connection.lrange(key, 0, -1)
-            if len(existing_config) == 0:
-                redis_connection.rpush(key, *lb_config)
-            elif not existing_config == lb_config:
-                redis_connection.ltrim(key, 1, 0)
-                redis_connection.rpush(key, *lb_config)
-            else:
-                # Everything is up to date
-                pass
+        self.paused = True
+        self.save()
 
     def update_environment_variables(self):
         for deployment in self.deployment_set.all():

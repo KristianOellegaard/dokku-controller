@@ -55,8 +55,11 @@ def update_load_balancer():
     while True:
         for app in App.objects.all():
             lb_config = [app.name]
-            for deployment in app.deployment_set.filter(last_update__gt=now() - datetime.timedelta(minutes=5)):
-                lb_config.append(deployment.endpoint)
+            if app.paused:
+                lb_config.append("paused")
+            else:
+                for deployment in app.deployment_set.filter(last_update__gt=now() - datetime.timedelta(minutes=5)):
+                    lb_config.append(deployment.endpoint)
             default_domain = ["%s.%s" % (app.name, settings.BASE_DOMAIN)]
             for domain in [domain.domain_name for domain in app.domain_set.all()] + default_domain:
                 key = "frontend:%s" % domain
