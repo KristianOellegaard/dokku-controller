@@ -22,7 +22,12 @@ def check_call(cmd, *args, **kwargs):
     return _check_call(cmd, *args, **kwargs)
 
 
-def docker_instance_command(cmd, server_hostname, instance_name):
+def docker(cmd, server_hostname, instance_name):
+    with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
+        fabric.run('sudo docker %s app/%s' % (cmd, instance_name))
+
+
+def docker_running_instance_command(cmd, server_hostname, instance_name):
     with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
         d = settings.DOKKU
         d.update({
@@ -31,9 +36,9 @@ def docker_instance_command(cmd, server_hostname, instance_name):
         })
         fabric.run('sudo docker ps | grep app/%(instance_name)s:latest | awk \'{ print $1 } \' | xargs sudo docker %(cmd)s' % d)
 
-start = lambda server_hostname, instance_name: docker_instance_command('start', server_hostname, instance_name)
-stop = lambda server_hostname, instance_name: docker_instance_command('stop', server_hostname, instance_name)
-restart = lambda server_hostname, instance_name: docker_instance_command('restart', server_hostname, instance_name)
+start = lambda server_hostname, instance_name: docker('start', server_hostname, instance_name)
+stop = lambda server_hostname, instance_name: docker_running_instance_command('stop', server_hostname, instance_name)
+restart = lambda server_hostname, instance_name: docker_running_instance_command('restart', server_hostname, instance_name)
 
 def delete(server_hostname, instance_name):
     with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
