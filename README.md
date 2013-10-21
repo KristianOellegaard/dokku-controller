@@ -36,7 +36,7 @@ Dokku
 -----
 (from controller)
 ```
-cat ~/.ssh/id_rsa.pub | ssh ubuntu@<server> "sudo gitreceive upload-key dokku-controller"
+cat ~/.ssh/id_rsa.pub | ssh ubuntu/root/etc@<server> "sudo gitreceive upload-key dokku-controller"
 ```
 Furthermore, add the ssh public key, of the user that is running the controller to the user ```ubuntu``` on every dokku instance.
 
