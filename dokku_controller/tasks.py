@@ -1,6 +1,8 @@
 import StringIO
 from subprocess import check_call as _check_call
+import datetime
 from django.db.models import Count
+from dokku_controller.models import App
 import fabric.api as fabric
 from django.conf import settings
 from fabric.operations import put, os
@@ -9,6 +11,7 @@ import time
 from dokku_controller.utils import TemporaryDirectory
 from project.redis_connection import connection as redis_connection
 import logging
+from django.utils.timezone import now
 
 logging.basicConfig(
     format='%(asctime)s,%(msecs)05.1f (%(funcName)s) %(message)s',
@@ -75,3 +78,29 @@ def get_new_deployment_server(app):
     from dokku_controller.models import Host
     hosts = Host.objects.all().annotate(num_deployments=Count('deployment'))
     return min(hosts, key=lambda itm: itm.num_deployments)
+
+
+def update_load_balancer_config(app_ids=None):
+    if not app_ids:
+        apps = App.objects.all()
+    else:
+        apps = App.objects.filter(pk__in=app_ids)
+    for app in apps:
+        lb_config = [app.name]
+        if app.paused:
+            lb_config.append("paused")
+        else:
+            for deployment in app.deployment_set.filter(last_update__gt=now() - datetime.timedelta(minutes=5)):
+                lb_config.append(deployment.endpoint)
+        default_domain = ["%s.%s" % (app.name, settings.BASE_DOMAIN)]
+        for domain in [domain.domain_name for domain in app.domain_set.all()] + default_domain:
+            key = "frontend:%s" % domain
+            existing_config = redis_connection.lrange(key, 0, -1)
+            if len(existing_config) == 0:
+                redis_connection.rpush(key, *lb_config)
+            elif not existing_config == lb_config:
+                redis_connection.ltrim(key, 1, 0)
+                redis_connection.rpush(key, *lb_config)
+            else:
+                # Everything is up to date
+                pass

@@ -5,6 +5,7 @@ import datetime
 from django.core.management import BaseCommand
 from dokku_controller.models import Deployment, Host, App
 from django.conf import settings
+from dokku_controller.tasks import update_load_balancer_config
 import gevent
 import socket as python_socket
 from gevent import socket
@@ -53,25 +54,7 @@ def listen_for_requests():
 
 def update_load_balancer():
     while True:
-        for app in App.objects.all():
-            lb_config = [app.name]
-            if app.paused:
-                lb_config.append("paused")
-            else:
-                for deployment in app.deployment_set.filter(last_update__gt=now() - datetime.timedelta(minutes=5)):
-                    lb_config.append(deployment.endpoint)
-            default_domain = ["%s.%s" % (app.name, settings.BASE_DOMAIN)]
-            for domain in [domain.domain_name for domain in app.domain_set.all()] + default_domain:
-                key = "frontend:%s" % domain
-                existing_config = redis_connection.lrange(key, 0, -1)
-                if len(existing_config) == 0:
-                    redis_connection.rpush(key, *lb_config)
-                elif not existing_config == lb_config:
-                    redis_connection.ltrim(key, 1, 0)
-                    redis_connection.rpush(key, *lb_config)
-                else:
-                    # Everything is up to date
-                    pass
+        update_load_balancer_config()
         gevent.sleep(25)
 
 

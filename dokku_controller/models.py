@@ -1,6 +1,6 @@
 import datetime
 from django.db import models
-from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server, start, stop
+from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server, start, stop, update_load_balancer_config
 from project.redis_connection import connection as redis_connection
 from django.conf import settings
 
@@ -35,6 +35,7 @@ class App(models.Model):
         self.stop()
         self.paused = True
         self.save()
+        update_load_balancer_config([self.pk])
 
     def update_environment_variables(self):
         for deployment in self.deployment_set.all():
