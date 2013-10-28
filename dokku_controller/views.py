@@ -82,7 +82,7 @@ class AppViewSet(viewsets.ModelViewSet):
         Starts the app
         """
         app = self.get_object()
-        app.restart()
+        app.start()
         response = {}
         return Response(response)
 
