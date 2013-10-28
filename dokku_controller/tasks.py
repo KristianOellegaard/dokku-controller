@@ -2,7 +2,6 @@ import StringIO
 from subprocess import check_call as _check_call
 import datetime
 from django.db.models import Count
-from dokku_controller.models import App
 import fabric.api as fabric
 from django.conf import settings
 from fabric.operations import put, os
@@ -81,6 +80,7 @@ def get_new_deployment_server(app):
 
 
 def update_load_balancer_config(app_ids=None):
+    from dokku_controller.models import App
     if not app_ids:
         apps = App.objects.all()
     else:
