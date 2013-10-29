@@ -1,5 +1,5 @@
 import StringIO
-from subprocess import Popen, CalledProcessError
+from subprocess import Popen, CalledProcessError, PIPE
 import datetime
 from django.db.models import Count
 import fabric.api as fabric
@@ -21,6 +21,9 @@ log.setLevel(logging.DEBUG)
 
 
 def check_call(cmd, *args, **kwargs):
+    kwargs['stdout'] = PIPE
+    kwargs['stderr'] = PIPE
+
     process = Popen(cmd, *args, **kwargs)
     stdout, stderr = process.communicate()
 
