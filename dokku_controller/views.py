@@ -1,7 +1,7 @@
 import json
 from django.http import Http404
 from rest_framework import serializers, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, link
 from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -55,6 +55,11 @@ class AppViewSet(viewsets.ModelViewSet):
     """
     queryset = App.objects.all()
     serializer_class = AppSerializer
+
+    @link()
+    def deployments(self, request, pk=None):
+        app = self.object()
+        return Response({deployment.host: deployment.status for deployment in app.deployment_set.all()})
 
     @action()
     def update_env_vars(self, request, pk=None):
