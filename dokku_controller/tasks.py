@@ -25,7 +25,7 @@ def check_call(cmd, *args, **kwargs):
     stdout, stderr = process.communicate()
 
     if process.returncode:
-        raise CalledProcessError(process.returncode, cmd, stderr)
+        raise CalledProcessError(process.returncode, cmd, stdout + stderr)
     return 0
 
 
@@ -85,8 +85,9 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                 check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
                 check_call(["git", "push", "git@%s:%s" % (deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
             deployment.status = "deployed_success"
-        except CalledProcessError:
+        except CalledProcessError as e:
             deployment.status = "deployed_error"
+            deployment.error_message = e.output
         finally:
             deployment.save()
 

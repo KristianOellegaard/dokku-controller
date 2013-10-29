@@ -105,6 +105,7 @@ class Deployment(models.Model):
     endpoint = models.CharField(max_length=256)
     last_update = models.DateTimeField()
     status = models.CharField(max_length=32, choices=DEPLOYMENT_STATUS_CHOICES)
+    error_message = models.TextField()
     revision = models.ForeignKey(Revision, null=True)
 
     def __unicode__(self):
