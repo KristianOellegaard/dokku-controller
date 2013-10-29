@@ -36,7 +36,12 @@ class AppAdmin(admin.ModelAdmin):
     actions = [delete_app, restart_app, deploy_app, pause_app, start_app, stop_app]
 
 admin.site.register(App, AppAdmin)
-admin.site.register(Deployment)
+
+
+class DeploymentAdmin(admin.ModelAdmin):
+    list_display = ('app', 'host', 'status', 'revision')
+
+admin.site.register(Deployment, DeploymentAdmin)
 admin.site.register(Host)
 admin.site.register(Domain)
 admin.site.register(EnvironmentVariable)
