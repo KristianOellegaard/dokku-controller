@@ -59,7 +59,7 @@ class AppViewSet(viewsets.ModelViewSet):
     @link()
     def deployments(self, request, pk=None):
         app = self.get_object()
-        return Response({deployment.host: deployment.status for deployment in app.deployment_set.all()})
+        return Response({deployment.pk: deployment.status for deployment in app.deployment_set.all()})
 
     @action()
     def update_env_vars(self, request, pk=None):
