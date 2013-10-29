@@ -51,14 +51,21 @@ class App(models.Model):
         revision = self.revision_set.all().latest('revision_number')
         if self.deployment_set.all():
             for deployment in self.deployment_set.all():
-                deploy_revision(deployment.host.hostname, deployment.app.name, revision.revision_number, revision.compressed_archive.path)
+                deploy_revision(
+                    deployment.pk,
+                    revision.pk,
+                )
         else:  # This wasn't deployed to a server before!
             deployment = Deployment.objects.create(
                 host=get_new_deployment_server(self),
                 app=self,
+                revision=revision,
                 last_update=datetime.datetime.now() - datetime.timedelta(days=30)  # make it inactive
             )
-            deploy_revision(deployment.host.hostname, deployment.app.name, revision.revision_number, revision.compressed_archive.path)
+            deploy_revision(
+                deployment.pk,
+                revision.pk,
+            )
 
     def __unicode__(self):
         return self.name
@@ -75,7 +82,7 @@ class Revision(models.Model):
     def save(self, *args, **kwargs):
         revision_count = self.app.revision_set.all().count()
         if revision_count > 0:
-            self.revision_number = revision_count +1
+            self.revision_number = revision_count + 1
         else:
             self.revision_number = 1
         return super(Revision, self).save(*args, **kwargs)
@@ -83,12 +90,22 @@ class Revision(models.Model):
     def __unicode__(self):
         return u"v%s" % self.revision_number
 
+DEPLOYMENT_STATUS_CHOICES = (
+    ('waiting_for_deploy', "Waiting to be deployed"),
+    ('deploying', "Deploying"),
+    ('deployed_success', "Deployed successfully"),
+    ('deployed_error', "Deployment failed"),
+
+)
+
 
 class Deployment(models.Model):
     host = models.ForeignKey(Host)
     app = models.ForeignKey(App)
     endpoint = models.CharField(max_length=256)
     last_update = models.DateTimeField()
+    status = models.CharField(max_length=32, choices=DEPLOYMENT_STATUS_CHOICES)
+    revision = models.ForeignKey(Revision, null=True)
 
     def __unicode__(self):
         return u"%s on %s" % (self.app.name, self.host.hostname)

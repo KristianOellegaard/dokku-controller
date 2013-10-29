@@ -1,14 +1,15 @@
 import StringIO
-from subprocess import check_call as _check_call
+from subprocess import Popen, CalledProcessError
 import datetime
 from django.db.models import Count
 import fabric.api as fabric
 from django.conf import settings
 from fabric.operations import put, os
+import redis
 from rq import Queue
 import time
 from dokku_controller.utils import TemporaryDirectory
-from project.redis_connection import connection as redis_connection
+from project.redis_connection import connection as redis_connection, pool
 import logging
 from django.utils.timezone import now
 
@@ -20,8 +21,12 @@ log.setLevel(logging.DEBUG)
 
 
 def check_call(cmd, *args, **kwargs):
-    logging.debug(cmd)
-    return _check_call(cmd, *args, **kwargs)
+    process = Popen(cmd, *args, **kwargs)
+    stdout, stderr = process.communicate()
+
+    if process.returncode:
+        raise CalledProcessError(process.returncode, cmd, stderr)
+    return 0
 
 
 def docker_instance_command(cmd, server_hostname, instance_name):
@@ -37,6 +42,7 @@ start = lambda server_hostname, instance_name: docker_instance_command('start', 
 stop = lambda server_hostname, instance_name: docker_instance_command('stop', server_hostname, instance_name)
 restart = lambda server_hostname, instance_name: docker_instance_command('restart', server_hostname, instance_name)
 
+
 def delete(server_hostname, instance_name):
     with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
         d = settings.DOKKU
@@ -50,7 +56,7 @@ def delete(server_hostname, instance_name):
 
 def update_environment(server_hostname, instance_name, env_pairs):
     with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], server_hostname)):
-        d = settings.DOKKU
+        d = settings.DOKKU.copy()
         d.update({
             'instance_name': instance_name
         })
@@ -58,19 +64,31 @@ def update_environment(server_hostname, instance_name, env_pairs):
         put(StringIO.StringIO(env_file_content), '/home/%(GIT_USER)s/%(instance_name)s/ENV' % d, use_sudo=True)
 
 
-def deploy_revision(server_hostname, instance_name, revision_number, revision_file_path, async=True):
+def deploy_revision(deployment_pk, revision_pk, async=True):
+    from dokku_controller.models import Revision, Deployment
     if async:
         q = Queue('default', connection=redis_connection)
-        q.enqueue(deploy_revision, server_hostname, instance_name, revision_number, revision_file_path, False)
+        q.enqueue(deploy_revision, deployment_pk, revision_pk, False)
     else:
-        with TemporaryDirectory() as dirname:
-            check_call(["cp", revision_file_path, os.path.join(dirname, 'app.tar.gz')])
-            check_call(["tar", "-xf", "app.tar.gz"], cwd=dirname)
-            check_call(["rm", "app.tar.gz"], cwd=dirname)
-            check_call(["git", "init"], cwd=dirname)
-            check_call(["git", "add", "."], cwd=dirname)
-            check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
-            check_call(["git", "push", "git@%s:%s" % (server_hostname, instance_name), "master", "--force"], cwd=dirname)
+        revision = Revision.objects.get(pk=revision_pk)
+        deployment = Deployment.objects.get(pk=deployment_pk)
+        deployment.status = "deploying"
+        deployment.revision = revision
+        deployment.save()
+        try:
+            with TemporaryDirectory() as dirname:
+                check_call(["cp", revision.compressed_archive.path, os.path.join(dirname, 'app.tar.gz')])
+                check_call(["tar", "-xf", "app.tar.gz"], cwd=dirname)
+                check_call(["rm", "app.tar.gz"], cwd=dirname)
+                check_call(["git", "init"], cwd=dirname)
+                check_call(["git", "add", "."], cwd=dirname)
+                check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
+                check_call(["git", "push", "git@%s:%s" % (deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
+            deployment.status = "deployed_success"
+        except CalledProcessError:
+            deployment.status = "deployed_error"
+        finally:
+            deployment.save()
 
 
 def get_new_deployment_server(app):
