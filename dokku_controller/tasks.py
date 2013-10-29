@@ -25,7 +25,12 @@ def check_call(cmd, *args, **kwargs):
     stdout, stderr = process.communicate()
 
     if process.returncode:
-        raise CalledProcessError(process.returncode, cmd, stdout + stderr)
+        output = ""
+        if stdout:
+            output += stdout
+        if stderr:
+            output += stderr
+        raise CalledProcessError(process.returncode, cmd, output)
     return 0
 
 

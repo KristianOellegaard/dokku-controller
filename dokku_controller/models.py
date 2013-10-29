@@ -104,7 +104,7 @@ class Deployment(models.Model):
     app = models.ForeignKey(App)
     endpoint = models.CharField(max_length=256)
     last_update = models.DateTimeField()
-    status = models.CharField(max_length=32, choices=DEPLOYMENT_STATUS_CHOICES)
+    status = models.CharField(max_length=32, choices=DEPLOYMENT_STATUS_CHOICES, default="waiting_for_deploy")
     error_message = models.TextField()
     revision = models.ForeignKey(Revision, null=True)
 
