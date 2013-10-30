@@ -1,7 +1,7 @@
 import StringIO
 from subprocess import Popen, CalledProcessError, PIPE
 import datetime
-import sys
+import traceback
 from django.db.models import Count
 import fabric.api as fabric
 from django.conf import settings
@@ -99,9 +99,8 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
             deployment.status = "deployed_error"
             deployment.error_message = e.output
         except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
             deployment.status = "deployed_error"
-            deployment.error_message = exc_traceback
+            deployment.error_message = traceback.format_exc()
         finally:
             deployment.save()
 
