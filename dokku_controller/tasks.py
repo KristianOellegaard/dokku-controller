@@ -1,6 +1,7 @@
 import StringIO
 from subprocess import Popen, CalledProcessError, PIPE
 import datetime
+import sys
 from django.db.models import Count
 import fabric.api as fabric
 from django.conf import settings
@@ -93,9 +94,14 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                 check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
                 check_call(["git", "push", "git@%s:%s" % (deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
             deployment.status = "deployed_success"
+            deployment.error_message = ""
         except CalledProcessError as e:
             deployment.status = "deployed_error"
             deployment.error_message = e.output
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            deployment.status = "deployed_error"
+            deployment.error_message = exc_traceback
         finally:
             deployment.save()
 
