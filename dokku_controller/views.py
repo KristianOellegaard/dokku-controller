@@ -1,11 +1,11 @@
-import json
 from django.http import Http404
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action, link
 from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from dokku_controller.models import App, Domain, EnvironmentVariable, Deployment, Revision
+from datetime import time
+from dokku_controller.models import App, Domain, EnvironmentVariable, Revision
 
 
 class AppSerializer(serializers.ModelSerializer):
@@ -59,7 +59,15 @@ class AppViewSet(viewsets.ModelViewSet):
     @link()
     def deployments(self, request, pk=None):
         app = self.get_object()
-        return Response({deployment.pk: deployment.status for deployment in app.deployment_set.all()})
+        return Response([
+            {
+                'pk': deployment.pk,
+                'status': deployment.status,
+                'last_update': time.mktime(deployment.last_update.timetuple()),
+                'error_message': deployment.error_message,
+                'revision': deployment.revision.revision_number,
+            } for deployment in app.deployment_set.all()
+        ])
 
     @action()
     def update_env_vars(self, request, pk=None):
