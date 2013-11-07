@@ -146,5 +146,5 @@ def scan_host_key(hostname, async=True):
         q = Queue('default', connection=redis_connection)
         q.enqueue_call(scan_host_key, args=(hostname, False))
     else:
-        with open(os.path.expanduser("~/.ssh/known_hosts", "a+")) as out:
+        with open(os.path.expanduser("~/.ssh/known_hosts"), "a+") as out:
             check_call(['ssh-keyscan', hostname], stdout=out)
