@@ -133,7 +133,7 @@ def update_load_balancer_config(app_ids=None):
             existing_config = redis_connection.lrange(key, 0, -1)
             if len(existing_config) == 0:
                 redis_connection.rpush(key, *lb_config)
-            elif not existing_config == lb_config:
+            elif not existing_config == lb_config and lb_config:
                 redis_connection.ltrim(key, 1, 0)
                 redis_connection.rpush(key, *lb_config)
             else:
