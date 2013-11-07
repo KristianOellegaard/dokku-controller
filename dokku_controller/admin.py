@@ -1,5 +1,6 @@
 from dokku_controller.models import App, Deployment, Host, EnvironmentVariable, Domain, Revision
 from django.contrib import admin
+from dokku_controller.tasks import scan_host_key
 
 
 def delete_app(modeladmin, request, queryset):
@@ -42,7 +43,17 @@ class DeploymentAdmin(admin.ModelAdmin):
     list_display = ('app', 'host', 'status', 'revision')
 
 admin.site.register(Deployment, DeploymentAdmin)
-admin.site.register(Host)
+
+
+def scan_host(modeladmin, request, queryset):
+    for host in queryset:
+        scan_host_key(host.hostname)
+
+
+class HostAdmin(admin.ModelAdmin):
+    actions = ['scan_host']
+
+admin.site.register(Host, HostAdmin)
 admin.site.register(Domain)
 admin.site.register(EnvironmentVariable)
 

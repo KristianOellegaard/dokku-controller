@@ -1,6 +1,7 @@
 import datetime
 from django.db import models
-from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server, start, stop, update_load_balancer_config
+from django.db.models.signals import post_save
+from dokku_controller.tasks import restart, delete, update_environment, deploy_revision, get_new_deployment_server, start, stop, update_load_balancer_config, scan_host_key
 from project.redis_connection import connection as redis_connection
 from django.conf import settings
 
@@ -127,3 +128,10 @@ class EnvironmentVariable(models.Model):
 
     def __unicode__(self):
         return u"%s=%s" % (self.key, self.value)
+
+
+def save_host(sender, instance, created, *args, **kwargs):
+    if created:
+        scan_host_key(instance.hostname)
+
+post_save.connect(save_host, sender=Host, dispatch_uid="scan_host_key")
