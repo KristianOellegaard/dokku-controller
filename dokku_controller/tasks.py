@@ -141,6 +141,6 @@ def update_load_balancer_config(app_ids=None):
 def scan_host_key(hostname, async=True):
     if async:
         q = Queue('default', connection=redis_connection)
-        q.enqueue(scan_host_key, hostname)
+        q.enqueue_call(scan_host_key, args=(hostname, False))
     else:
         check_call(['ssh-keyscan', hostname])
