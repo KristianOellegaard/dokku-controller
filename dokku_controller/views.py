@@ -1,10 +1,10 @@
+import time
 from django.http import Http404
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action, link
 from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from datetime import time
 from dokku_controller.models import App, Domain, EnvironmentVariable, Revision
 
 

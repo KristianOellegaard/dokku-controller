@@ -77,7 +77,7 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
     from dokku_controller.models import Revision, Deployment
     if async:
         q = Queue('default', connection=redis_connection)
-        q.enqueue(deploy_revision, deployment_pk, revision_pk, False)
+        q.enqueue_call(deploy_revision, args=(deployment_pk, revision_pk, False,), timeout=3000)
     else:
         revision = Revision.objects.get(pk=revision_pk)
         deployment = Deployment.objects.get(pk=deployment_pk)

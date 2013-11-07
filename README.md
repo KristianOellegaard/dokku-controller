@@ -17,6 +17,7 @@ Roadmap
 - Health check, move app if a dokku is down
 - Service Gateway ([puppet scripts](https://github.com/KristianOellegaard/puppet-postgresql) + provisioning API).
 - Idea: Use the Heroku Provider Api for service gws: http://devcenter.heroku.com/articles/add-on-provider-api
+- Only stage the application once, instead of one time per deployed server
 
 Publish information from dokku
 ------------------------------
