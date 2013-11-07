@@ -51,7 +51,7 @@ def scan_host(modeladmin, request, queryset):
 
 
 class HostAdmin(admin.ModelAdmin):
-    actions = ['scan_host']
+    actions = [scan_host]
 
 admin.site.register(Host, HostAdmin)
 admin.site.register(Domain)
