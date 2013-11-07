@@ -95,7 +95,7 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                 check_call(["git", "init"], cwd=dirname)
                 check_call(["git", "add", "."], cwd=dirname)
                 check_call(["git", "commit", "-am", "'initial'"], cwd=dirname)
-                check_call(["git", "push", "git@%s:%s" % (deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
+                check_call(["git", "push", "%s@%s:%s" % (settings.DOKKU['GIT_USER'], deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
             deployment.status = "deployed_success"
             deployment.error_message = ""
         except CalledProcessError as e:
