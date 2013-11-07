@@ -22,8 +22,11 @@ log.setLevel(logging.DEBUG)
 
 
 def check_call(cmd, *args, **kwargs):
-    kwargs['stdout'] = PIPE
-    kwargs['stderr'] = PIPE
+    if 'stdout' not in kwargs:
+        kwargs['stdout'] = PIPE
+
+    if 'stderr' not in kwargs:
+        kwargs['stderr'] = PIPE
 
     process = Popen(cmd, *args, **kwargs)
     stdout, stderr = process.communicate()
@@ -143,4 +146,5 @@ def scan_host_key(hostname, async=True):
         q = Queue('default', connection=redis_connection)
         q.enqueue_call(scan_host_key, args=(hostname, False))
     else:
-        check_call(['ssh-keyscan', hostname])
+        with open("~/.ssh/known_hosts", "a+") as out:
+            check_call(['ssh-keyscan', hostname], stdout=out)
