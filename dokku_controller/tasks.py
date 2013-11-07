@@ -129,7 +129,7 @@ def update_load_balancer_config(app_ids=None):
                 lb_config.append(deployment.endpoint)
         default_domain = ["%s.%s" % (app.name, settings.BASE_DOMAIN)]
         for domain in [domain.domain_name for domain in app.domain_set.all()] + default_domain:
-            key = "frontend:%s" % domain
+            key = ("frontend:%s" % domain).lower()
             existing_config = redis_connection.lrange(key, 0, -1)
             if len(existing_config) == 0:
                 redis_connection.rpush(key, *lb_config)
