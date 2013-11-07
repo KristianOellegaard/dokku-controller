@@ -158,8 +158,8 @@ LOGGING = {
 }
 
 DOKKU = {
-    'SSH_USER': 'ubuntu',
-    'GIT_USER': 'git'
+    'SSH_USER': 'dokku-controller',
+    'GIT_USER': 'dokku'
 }
 
 REST_FRAMEWORK = {
