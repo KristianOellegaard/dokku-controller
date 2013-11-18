@@ -82,11 +82,12 @@ class Revision(models.Model):
     docker_image_name = models.CharField(max_length=128, null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        revision_count = self.app.revision_set.all().count()
-        if revision_count > 0:
-            self.revision_number = revision_count + 1
-        else:
-            self.revision_number = 1
+        if not self.revision_number:
+            revision_count = self.app.revision_set.all().count()
+            if revision_count > 0:
+                self.revision_number = revision_count + 1
+            else:
+                self.revision_number = 1
         return super(Revision, self).save(*args, **kwargs)
 
     def __unicode__(self):
