@@ -96,6 +96,9 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                     fabric.run('sudo docker pull %s' % docker_image_name)
                     for process_type in process_types:
                         fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
+                    # Clean up, by calling killing and removing all non-current images
+                    fabric.run('sudo docker ps | grep "%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (docker_image_name_without_version, revision.revision_number))
+                    fabric.run('sudo docker images | grep "%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % (docker_image_name_without_version, revision.revision_number))
             else:
                 with TemporaryDirectory() as dirname:
                     check_call(["cp", revision.compressed_archive.path, os.path.join(dirname, 'app.tar.gz')])
