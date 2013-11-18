@@ -87,11 +87,14 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
         deployment.status = "deploying"
         deployment.revision = revision
         deployment.save()
+        docker_image_name = "%s/app-%s:v%s" % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name, revision.revision_number)
+        process_types = ['web']
         try:
             if revision.docker_image_name and settings.DOCKER_IMAGE_SERVER_URL:
                 with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], deployment.host.hostname)):
-                    fabric.run('sudo docker pull %s/app-%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
-                    fabric.run('docker run -d -p 5000 -e PORT=5000 %s/app-%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                    fabric.run('sudo docker pull %s' % docker_image_name)
+                    for process_type in process_types:
+                        fabric.run('docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
             else:
                 with TemporaryDirectory() as dirname:
                     check_call(["cp", revision.compressed_archive.path, os.path.join(dirname, 'app.tar.gz')])
@@ -103,18 +106,31 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                     check_call(["git", "push", "%s@%s:%s" % (settings.DOKKU['GIT_USER'], deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
                     if settings.DOCKER_IMAGE_SERVER_URL:
                         with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], deployment.host.hostname)):
-                            fabric.run('sudo docker tag app/%(app_name)s %(image_url)s/app-%(app_name)s:v%(revision)s' % {
+                            # Tag the result from dokku with name and version
+                            fabric.run('sudo docker tag app/%(app_name)s %(docker_image_name)s' % {
                                'image_url': settings.DOCKER_IMAGE_SERVER_URL,
                                'app_name': deployment.app.name,
                                'revision': revision.revision_number,
+                               'docker_image_name': docker_image_name
                             })
+                            # Push it to the image server
                             fabric.run('sudo docker push %s/app-%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                            # Kill the dokku instance, to avoid inconsistencies. In this way, every instance is the one from the image server
                             fabric.run('sudo docker ps | grep app/%s:latest | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name)
+                            # Remove the dokku original image
                             fabric.run('sudo docker rmi app/%s' % deployment.app.name)
-                            fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s/app-%s:v%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name, revision.revision_number))
-
+                            # Kill any previously running processes with the same revision number (shouldn't commonly happen)
+                            fabric.run('sudo docker ps | grep "/app-%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name, revision.revision_number)
+                            # Run the new process from the new image
+                            for process_type in process_types:
+                                fabric.run('docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
+                            # Clean up, by calling killing and removing all non-current images
+                            fabric.run('sudo docker ps | grep "/app-%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name, revision.revision_number)
+                            fabric.run('sudo docker images | grep "/app-%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % deployment.app.name, revision.revision_number)
+                        revision.docker_image_name = docker_image_name
+                        revision.save()
             deployment.status = "deployed_success"
-            deployment.error_message = ""
+            deployment.error_message = "Success!"
         except CalledProcessError as e:
             deployment.status = "deployed_error"
             deployment.error_message = e.output
