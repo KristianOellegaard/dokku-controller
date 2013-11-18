@@ -162,6 +162,8 @@ DOKKU = {
     'GIT_USER': 'dokku'
 }
 
+DOCKER_IMAGE_SERVER_URL = os.environ.get('DOCKER_IMAGE_SERVER_URL')
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
