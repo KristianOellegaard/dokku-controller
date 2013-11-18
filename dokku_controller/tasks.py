@@ -111,7 +111,7 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                             fabric.run('sudo docker push %s/app-%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
                             fabric.run('sudo docker ps | grep app/%s:latest | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name)
                             fabric.run('sudo docker rmi app/%s' % deployment.app.name)
-                            fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s/app-%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                            fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s/app-%s:v%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name, revision.revision_number))
 
             deployment.status = "deployed_success"
             deployment.error_message = ""
