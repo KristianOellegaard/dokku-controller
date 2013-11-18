@@ -120,13 +120,13 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                             # Remove the dokku original image
                             fabric.run('sudo docker rmi app/%s' % deployment.app.name)
                             # Kill any previously running processes with the same revision number (shouldn't commonly happen)
-                            fabric.run('sudo docker ps | grep "/app-%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name, revision.revision_number)
+                            fabric.run('sudo docker ps | grep "/app-%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
                             # Run the new process from the new image
                             for process_type in process_types:
                                 fabric.run('docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
                             # Clean up, by calling killing and removing all non-current images
-                            fabric.run('sudo docker ps | grep "/app-%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name, revision.revision_number)
-                            fabric.run('sudo docker images | grep "/app-%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % deployment.app.name, revision.revision_number)
+                            fabric.run('sudo docker ps | grep "/app-%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
+                            fabric.run('sudo docker images | grep "/app-%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % (deployment.app.name, revision.revision_number))
                         revision.docker_image_name = docker_image_name
                         revision.save()
             deployment.status = "deployed_success"
