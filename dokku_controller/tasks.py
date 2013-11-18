@@ -87,7 +87,7 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
         deployment.status = "deploying"
         deployment.revision = revision
         deployment.save()
-        docker_image_name = "%s/app-%s:v%s" % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name, revision.revision_number)
+        docker_image_name = "%s/dokcon/%s:v%s" % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name, revision.revision_number)
         process_types = ['web']
         try:
             if revision.docker_image_name and settings.DOCKER_IMAGE_SERVER_URL:
@@ -114,19 +114,19 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                                'docker_image_name': docker_image_name
                             })
                             # Push it to the image server
-                            fabric.run('sudo docker push %s/app-%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                            fabric.run('sudo docker push %s' % docker_image_name)
                             # Kill the dokku instance, to avoid inconsistencies. In this way, every instance is the one from the image server
                             fabric.run('sudo docker ps | grep app/%s:latest | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name)
                             # Remove the dokku original image
                             fabric.run('sudo docker rmi app/%s' % deployment.app.name)
                             # Kill any previously running processes with the same revision number (shouldn't commonly happen)
-                            fabric.run('sudo docker ps | grep "/app-%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
+                            fabric.run('sudo docker ps | grep "dokcon/app-%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
                             # Run the new process from the new image
                             for process_type in process_types:
                                 fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
                             # Clean up, by calling killing and removing all non-current images
-                            fabric.run('sudo docker ps | grep "/app-%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
-                            fabric.run('sudo docker images | grep "/app-%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % (deployment.app.name, revision.revision_number))
+                            fabric.run('sudo docker ps | grep "dokcon/app-%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
+                            fabric.run('sudo docker images | grep "dokcon/app-%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % (deployment.app.name, revision.revision_number))
                         revision.docker_image_name = docker_image_name
                         revision.save()
             deployment.status = "deployed_success"
