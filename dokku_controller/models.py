@@ -79,7 +79,7 @@ class Revision(models.Model):
     compressed_archive = models.FileField(upload_to=lambda instance, filename: "%s/%s-%s" % (
         instance.app.name, instance.revision_number, filename
     ))
-    docker_image_name = models.CharField(max_length=128, null=True)
+    docker_image_name = models.CharField(max_length=128, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         revision_count = self.app.revision_set.all().count()
