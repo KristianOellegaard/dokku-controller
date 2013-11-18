@@ -90,8 +90,8 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
         try:
             if revision.docker_image_name and settings.DOCKER_IMAGE_SERVER_URL:
                 with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], deployment.host.hostname)):
-                    fabric.run('sudo docker pull %s/app/%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
-                    fabric.run('docker run -d -p 5000 -e PORT=5000 %s/app/%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                    fabric.run('sudo docker pull %s/app-%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                    fabric.run('docker run -d -p 5000 -e PORT=5000 %s/app-%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
             else:
                 with TemporaryDirectory() as dirname:
                     check_call(["cp", revision.compressed_archive.path, os.path.join(dirname, 'app.tar.gz')])
@@ -103,15 +103,15 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                     check_call(["git", "push", "%s@%s:%s" % (settings.DOKKU['GIT_USER'], deployment.host.hostname, deployment.app.name), "master", "--force"], cwd=dirname)
                     if settings.DOCKER_IMAGE_SERVER_URL:
                         with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], deployment.host.hostname)):
-                            fabric.run('sudo docker tag app/%(app_name)s %(image_url)s/app/%(app_name)s:v%(revision)s' % {
+                            fabric.run('sudo docker tag app/%(app_name)s %(image_url)s/app-%(app_name)s:v%(revision)s' % {
                                'image_url': settings.DOCKER_IMAGE_SERVER_URL,
                                'app_name': deployment.app.name,
                                'revision': revision.revision_number,
                             })
-                            fabric.run('sudo docker push %s/app/%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                            fabric.run('sudo docker push %s/app-%s' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
                             fabric.run('sudo docker ps | grep app/%s:latest | awk \'{ print $1 } \' | xargs sudo docker kill' % deployment.app.name)
                             fabric.run('sudo docker rmi app/%s' % deployment.app.name)
-                            fabric.run('docker run -d -p 5000 -e PORT=5000 %s/app/%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
+                            fabric.run('docker run -d -p 5000 -e PORT=5000 %s/app-%s /bin/bash -c "/start web"' % (settings.DOCKER_IMAGE_SERVER_URL, deployment.app.name))
 
             deployment.status = "deployed_success"
             deployment.error_message = ""
