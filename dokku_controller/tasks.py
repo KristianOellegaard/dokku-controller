@@ -94,7 +94,7 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                 with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], deployment.host.hostname)):
                     fabric.run('sudo docker pull %s' % docker_image_name)
                     for process_type in process_types:
-                        fabric.run('docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
+                        fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
             else:
                 with TemporaryDirectory() as dirname:
                     check_call(["cp", revision.compressed_archive.path, os.path.join(dirname, 'app.tar.gz')])
@@ -123,7 +123,7 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
                             fabric.run('sudo docker ps | grep "/app-%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
                             # Run the new process from the new image
                             for process_type in process_types:
-                                fabric.run('docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
+                                fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
                             # Clean up, by calling killing and removing all non-current images
                             fabric.run('sudo docker ps | grep "/app-%s:" | grep -v v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (deployment.app.name, revision.revision_number))
                             fabric.run('sudo docker images | grep "/app-%s " | grep -v v%s | awk \'{ print $3 } \' | xargs sudo docker rmi' % (deployment.app.name, revision.revision_number))
@@ -134,6 +134,9 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
         except CalledProcessError as e:
             deployment.status = "deployed_error"
             deployment.error_message = e.output
+        except SystemExit as e:
+            deployment.status = "deployed_error"
+            deployment.error_message = traceback.format_exc()
         except Exception as e:
             deployment.status = "deployed_error"
             deployment.error_message = traceback.format_exc()
