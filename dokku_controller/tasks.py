@@ -94,6 +94,8 @@ def deploy_revision(deployment_pk, revision_pk, async=True):
             if revision.docker_image_name and settings.DOCKER_IMAGE_SERVER_URL:
                 with fabric.settings(host_string='%s@%s' % (settings.DOKKU['SSH_USER'], deployment.host.hostname)):
                     fabric.run('sudo docker pull %s' % docker_image_name)
+                    # Kill any previously running processes with the same revision number (shouldn't commonly happen)
+                    fabric.run('sudo docker ps | grep "%s:" | grep v%s | awk \'{ print $1 } \' | xargs sudo docker kill' % (docker_image_name_without_version, revision.revision_number))
                     for process_type in process_types:
                         fabric.run('sudo docker run -d -p 5000 -e PORT=5000 %s /bin/bash -c "/start %s"' % (docker_image_name, process_type))
                     # Clean up, by calling killing and removing all non-current images
