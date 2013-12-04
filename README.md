@@ -9,15 +9,14 @@ Features
 - Configure environment on dokku over a REST API
 - Restart and delete your dokku apps over a REST API
 - Configures redis for use with [dotcloud/hipache load balancer](https://github.com/dotcloud/hipache)
+- Use the Heroku Provider Api for service gws: http://devcenter.heroku.com/articles/add-on-provider-api - Example service implementation: https://github.com/KristianOellegaard/docker-service-provisioner
+- Push directly to the controller and let the controller manage on which dokku to deploy
 
 Roadmap
 -------
 
-- Push directly to the controller and let the controller manage on which dokku to deploy
 - Health check, move app if a dokku is down
-- Service Gateway ([puppet scripts](https://github.com/KristianOellegaard/puppet-postgresql) + provisioning API).
-- Idea: Use the Heroku Provider Api for service gws: http://devcenter.heroku.com/articles/add-on-provider-api
-- Only stage the application once, instead of one time per deployed server
+
 
 Publish information from dokku
 ------------------------------
