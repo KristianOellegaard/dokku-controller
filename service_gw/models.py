@@ -95,6 +95,7 @@ class ServiceAssociation(models.Model):
                     value=value,
                     app=self.app,
                 )
+            self.save()
         return s
 
 
